@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KisanSAATHI - AI Powered Farmer Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+        .voice-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            transition: all 0.3s ease;
+        }
+        .voice-button:hover {
+            transform: scale(1.05);
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .bottom-nav {
+            backdrop-filter: blur(10px);
+        }
+        @media (max-width: 768px) {
+            .grid-cols-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm fixed w-full top-0 z-50">
+        <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="bi bi-flower1 text-green-600 text-2xl"></i>
+                <h1 class="text-xl font-bold text-green-600">KisanSAATHI</h1>
+            </div>
+            <button id="langToggle" class="px-4 py-2 bg-green-100 text-green-600 rounded-full text-sm">
+                हिंदी / English
+            </button>
+        </nav>
+    </header>
+
+    <!-- Voice Assistant Button -->
+    <div class="fixed bottom-20 right-4 z-50">
+        <button id="voiceButton" class="voice-button w-16 h-16 rounded-full shadow-lg flex items-center justify-center text-white">
+            <i class="bi bi-mic-fill text-2xl"></i>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 pt-20 pb-24">
+        <!-- Weather Alert -->
+        <div class="bg-blue-50 p-4 rounded-lg mb-6">
+            <div class="flex items-center space-x-2">
+                <i class="bi bi-cloud-sun text-blue-500 text-xl"></i>
+                <div>
+                    <h3 class="font-medium text-blue-800">Today's Weather</h3>
+                    <p class="text-sm text-blue-600">28°C | Partly Cloudy | 60% Humidity</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <button onclick="showSection('agronomist')" class="feature-card bg-white p-4 rounded-lg shadow-sm text-center">
+                <i class="bi bi-tree text-3xl text-green-600"></i>
+                <h3 class="mt-2 text-sm font-medium">AI Agronomist</h3>
+            </button>
+            <button onclick="showSection('market')" class="feature-card bg-white p-4 rounded-lg shadow-sm text-center">
+                <i class="bi bi-graph-up text-3xl text-blue-600"></i>
+                <h3 class="mt-2 text-sm font-medium">Market Prices</h3>
+            </button>
+            <button onclick="showSection('schemes')" class="feature-card bg-white p-4 rounded-lg shadow-sm text-center">
+                <i class="bi bi-file-text text-3xl text-purple-600"></i>
+                <h3 class="mt-2 text-sm font-medium">Govt Schemes</h3>
+            </button>
+            <button onclick="showSection('logistics')" class="feature-card bg-white p-4 rounded-lg shadow-sm text-center">
+                <i class="bi bi-truck text-3xl text-orange-600"></i>
+                <h3 class="mt-2 text-sm font-medium">Logistics</h3>
+            </button>
+            <button onclick="showSection('credit')" class="feature-card bg-white p-4 rounded-lg shadow-sm text-center">
+                <i class="bi bi-bank text-3xl text-red-600"></i>
+                <h3 class="mt-2 text-sm font-medium">Credit & Insurance</h3>
+            </button>
+            <button onclick="showSection('shop')" class="feature-card bg-white p-4 rounded-lg shadow-sm text-center">
+                <i class="bi bi-cart3 text-3xl text-yellow-600"></i>
+                <h3 class="mt-2 text-sm font-medium">Buy Inputs</h3>
+            </button>
+        </div>
+
+        <!-- Feature Details Sections -->
+        <div id="agronomist" class="feature-section hidden mt-8">
+            <h2 class="text-lg font-semibold mb-4">AI Agronomist</h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <p>AI-powered crop recommendations based on weather and soil conditions.</p>
+                <button onclick="getWeatherSuggestion()" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg">Get Crop Suggestion</button>
+                <div id="weatherSuggestion" class="mt-4"></div>
+            </div>
+        </div>
+
+        <div id="market" class="feature-section hidden mt-8">
+            <h2 class="text-lg font-semibold mb-4">Market Prices</h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>Tomato: ₹40/kg</div>
+                    <div>Potato: ₹25/kg</div>
+                    <div>Onion: ₹35/kg</div>
+                    <div>Carrot: ₹50/kg</div>
+                    <div>Cabbage: ₹30/kg</div>
+                    <div>Cauliflower: ₹45/kg</div>
+                    <div>Spinach: ₹20/kg</div>
+                    <div>Ladyfinger: ₹55/kg</div>
+                    <div>Brinjal: ₹40/kg</div>
+                    <div>Cucumber: ₹35/kg</div>
+                </div>
+                <button onclick="showProfitPredictor()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg">Profit Predictor</button>
+                <div id="profitPredictor" class="mt-4 hidden">
+                    <input type="text" id="cropInput" placeholder="Enter crop name" class="p-2 border rounded">
+                    <input type="number" id="quantityInput" placeholder="Quantity (kg)" class="p-2 border rounded ml-2">
+                    <button onclick="calculateProfit()" class="ml-2 px-4 py-2 bg-green-600 text-white rounded">Calculate</button>
+                    <div id="profitResult" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="schemes" class="feature-section hidden mt-8">
+            <h2 class="text-lg font-semibold mb-4">Government Schemes</h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <ul class="list-disc pl-5">
+                    <li>PM-KISAN: Direct income support of ₹6,000 per year to farmer families.</li>
+                    <li>Pradhan Mantri Fasal Bima Yojana: Crop insurance scheme.</li>
+                    <li>Soil Health Card Scheme: Free soil testing and recommendations.</li>
+                    <li>Kisan Credit Card: Easy credit access for farmers.</li>
+                    <li>National Agriculture Market: Online trading platform.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="logistics" class="feature-section hidden mt-8">
+            <h2 class="text-lg font-semibold mb-4">Logistics & Storage Planner</h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <select id="roomSelect" class="p-2 border rounded">
+                    <option value="90x90">90x90 Hall</option>
+                    <option value="20x20">20x20 Room</option>
+                    <option value="10x10">10x10 Room</option>
+                    <option value="30x30">30x30 Room</option>
+                </select>
+                <button onclick="planStorage()" class="ml-2 px-4 py-2 bg-orange-600 text-white rounded">Plan Storage</button>
+                <div id="storagePlan" class="mt-4"></div>
+            </div>
+        </div>
+
+        <div id="credit" class="feature-section hidden mt-8">
+            <h2 class="text-lg font-semibold mb-4">Credit & Insurance</h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <p>Access to loans and insurance for farmers.</p>
+                <button onclick="applyCredit()" class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg">Apply for Credit</button>
+            </div>
+        </div>
+
+        <div id="shop" class="feature-section hidden mt-8">
+            <h2 class="text-lg font-semibold mb-4">Buy Inputs</h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <p>Purchase seeds, fertilizers, and equipment.</p>
+                <button onclick="shopInputs()" class="mt-4 px-4 py-2 bg-yellow-600 text-white rounded-lg">Shop Now</button>
+            </div>
+        </div>
+
+        <!-- Disease Detection Section -->
+        <section id="disease-detection" class="mt-8">
+            <h2 class="text-lg font-semibold mb-4">Crop Disease Detection</h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <input type="file" id="cropImage" accept="image/*" class="hidden">
+                <label for="cropImage" class="block w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-green-500 transition-colors">
+                    <i class="bi bi-camera text-2xl text-gray-400"></i>
+                    <p class="mt-2 text-sm text-gray-500">Upload crop photo for analysis</p>
+                </label>
+            </div>
+        </section>
+
+        <!-- Prerna AI Section -->
+        <section id="prerna" class="mt-8">
+            <h2 class="text-lg font-semibold mb-4">Prerna AI - Your Wellness Companion</h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <div id="chat-messages" class="h-48 overflow-y-auto mb-4"></div>
+                <div class="flex space-x-2">
+                    <input type="text" id="userMessage" placeholder="Type your message..." class="flex-1 p-2 border rounded-lg">
+                    <button onclick="sendMessage()" class="px-4 py-2 bg-green-600 text-white rounded-lg">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav fixed bottom-0 w-full bg-white bg-opacity-90 border-t px-4 py-2">
+        <div class="flex justify-around">
+            <a href="#home" class="text-center">
+                <i class="bi bi-house text-xl text-green-600"></i>
+                <span class="block text-xs">Home</span>
+            </a>
+            <a href="#market" class="text-center">
+                <i class="bi bi-graph-up text-xl text-gray-600"></i>
+                <span class="block text-xs">Market</span>
+            </a>
+            <a href="#community" class="text-center">
+                <i class="bi bi-people text-xl text-gray-600"></i>
+                <span class="block text-xs">Community</span>
+            </a>
+            <a href="#profile" class="text-center">
+                <i class="bi bi-person text-xl text-gray-600"></i>
+                <span class="block text-xs">Profile</span>
+            </a>
+        </div>
+    </nav>
+
+    <script>
+        // Voice Recognition Setup
+        let recognition;
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'hi-IN';
+            
+            recognition.onresult = function(event) {
+                const text = event.results[0][0].transcript;
+                processVoiceCommand(text);
+            };
+        }
+
+        const voiceButton = document.getElementById('voiceButton');
+        voiceButton.addEventListener('click', () => {
+            if (recognition) {
+                recognition.start();
+                voiceButton.classList.add('animate-pulse');
+                setTimeout(() => {
+                    voiceButton.classList.remove('animate-pulse');
+                }, 5000);
+            }
+        });
+
+        // Language Toggle
+        const langToggle = document.getElementById('langToggle');
+        let isHindi = false;
+        langToggle.addEventListener('click', () => {
+            isHindi = !isHindi;
+            recognition.lang = isHindi ? 'hi-IN' : 'en-IN';
+            // Add translation logic here
+        });
+
+        // Prerna AI Chat
+        function sendMessage() {
+            const input = document.getElementById('userMessage');
+            const messages = document.getElementById('chat-messages');
+            
+            if (input.value.trim()) {
+                const userDiv = document.createElement('div');
+                userDiv.className = 'mb-2 text-right';
+                userDiv.innerHTML = `
+                    <span class="inline-block bg-green-100 rounded-lg px-3 py-2 text-sm">
+                        ${input.value}
+                    </span>
+                `;
+                messages.appendChild(userDiv);
+
+                // Simulate AI response
+                setTimeout(() => {
+                    const aiDiv = document.createElement('div');
+                    aiDiv.className = 'mb-2';
+                    aiDiv.innerHTML = `
+                        <span class="inline-block bg-gray-100 rounded-lg px-3 py-2 text-sm">
+                            Thank you for sharing. I'm here to help! How are you feeling today?
+                        </span>
+                    `;
+                    messages.appendChild(aiDiv);
+                    messages.scrollTop = messages.scrollHeight;
+                }, 1000);
+
+                input.value = '';
+            }
+        }
+
+        // Process voice commands
+        function processVoiceCommand(text) {
+            console.log('Voice command:', text);
+            const lowerText = text.toLowerCase();
+            if (lowerText.includes('market') || lowerText.includes('price')) {
+                showSection('market');
+            } else if (lowerText.includes('scheme') || lowerText.includes('government')) {
+                showSection('schemes');
+            } else if (lowerText.includes('logistics') || lowerText.includes('storage')) {
+                showSection('logistics');
+            } else if (lowerText.includes('weather') || lowerText.includes('crop')) {
+                showSection('agronomist');
+                getWeatherSuggestion();
+            } else if (lowerText.includes('profit')) {
+                showSection('market');
+                showProfitPredictor();
+            }
+        }
+
+        // Show feature sections
+        function showSection(sectionId) {
+            document.querySelectorAll('.feature-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        // Weather suggestion
+        function getWeatherSuggestion() {
+            const suggestions = [
+                "Based on current weather conditions (28°C, partly cloudy), it's safe to farm tomatoes and cucumbers today. The moderate temperature and humidity are ideal for these crops. However, avoid watering during peak sun hours to prevent fungal diseases. Consider planting leafy greens like spinach which thrive in this weather. Remember to monitor soil moisture levels closely.",
+                "Today's weather is favorable for farming potatoes and carrots. The partly cloudy conditions provide good sunlight without excessive heat. It's safe to continue farming activities. For optimal yield, ensure proper irrigation and pest control. Consider diversifying with onions if you have space.",
+                "Weather conditions suggest caution for outdoor farming today. High humidity may increase disease risk. Focus on harvesting existing crops rather than planting new ones. If farming is necessary, prioritize crops like cabbage and cauliflower which are more resistant to humid conditions."
+            ];
+            const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+            document.getElementById('weatherSuggestion').innerHTML = `<p>${randomSuggestion}</p>`;
+        }
+
+        // Profit predictor
+        function showProfitPredictor() {
+            document.getElementById('profitPredictor').classList.remove('hidden');
+        }
+
+        function calculateProfit() {
+            const crop = document.getElementById('cropInput').value.toLowerCase();
+            const quantity = parseFloat(document.getElementById('quantityInput').value);
+            const prices = {
+                tomato: 40,
+                potato: 25,
+                onion: 35,
+                carrot: 50,
+                cabbage: 30,
+                cauliflower: 45,
+                spinach: 20,
+                ladyfinger: 55,
+                brinjal: 40,
+                cucumber: 35
+            };
+            const costPerKg = prices[crop] || 0;
+            const revenue = costPerKg * quantity;
+            const profit = revenue * 0.3; // Assuming 30% profit margin
+            document.getElementById('profitResult').innerHTML = `<p>Estimated Revenue: ₹${revenue.toFixed(2)}, Profit: ₹${profit.toFixed(2)}</p>`;
+        }
+
+        // Storage planner
+        function planStorage() {
+            const room = document.getElementById('roomSelect').value;
+            const plans = {
+                '90x90': 'Large hall suitable for bulk storage. Can store up to 10,000 kg of produce. Arrange in rows with ventilation. Use pallets for easy access.',
+                '20x20': 'Medium room for seasonal storage. Capacity: 2,000 kg. Install shelves and maintain temperature control.',
+                '10x10': 'Small room for daily storage. Capacity: 500 kg. Focus on perishable items with good airflow.',
+                '30x30': 'Standard room for mixed storage. Capacity: 5,000 kg. Divide into zones for different crops.'
+            };
+            document.getElementById('storagePlan').innerHTML = `<p>${plans[room]}</p>`;
+        }
+
+        // Dummy functions for other features
+        function applyCredit() {
+            alert('Credit application feature coming soon!');
+        }
+
+        function shopInputs() {
+            alert('Shopping feature coming soon!');
+        }
+
+        // Initialize as PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                console.log('ServiceWorker registration successful');
+            }).catch(function(err) {
+                console.log('ServiceWorker registration failed:', err);
+            });
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
